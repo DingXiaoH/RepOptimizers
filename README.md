@@ -13,8 +13,8 @@ If you find the paper or this repository helpful, please consider citing
 
 ## Catalog
 - [x] Model code
-- [] PyTorch pretrained models
-- [] PyTorch training code
+- [ ] PyTorch pretrained models
+- [ ] PyTorch training code
 
 <!-- ✅ ⬜️  -->
 
