@@ -77,8 +77,22 @@ def main(config):
 
     logger.info(f"Creating model:{config.MODEL.ARCH}")
 
-    num_blocks = [4, 6, 16, 1]
-    width_multiplier = [2, 2, 2, 4]
+    if 'B1' in config.MODEL.ARCH:
+        num_blocks = [4, 6, 16, 1]
+        width_multiplier = [2, 2, 2, 4]
+    elif 'B2' in config.MODEL.ARCH:
+        num_blocks = [4, 6, 16, 1]
+        width_multiplier = [2.5, 2.5, 2.5, 5]
+    elif 'L1' in config.MODEL.ARCH:
+        num_blocks = [8, 14, 24, 1]
+        width_multiplier = [2, 2, 2, 4]
+    elif 'L2' in config.MODEL.ARCH:
+        num_blocks = [8, 14, 24, 1]
+        width_multiplier = [2.5, 2.5, 2.5, 5]
+    else:
+        raise ValueError('Not yet supported. You may add the architectural settings here.')
+
+
     if '-hs' in config.MODEL.ARCH:
         assert config.DATA.DATASET == 'cf100'
         model = RepOptVGG(num_blocks=num_blocks, num_classes=100, width_multiplier=width_multiplier, mode='hs')
@@ -90,7 +104,7 @@ def main(config):
         optimizer = build_optimizer(config, model)
     elif '-target' in config.MODEL.ARCH:
         assert config.DATA.DATASET == 'imagenet'
-        #   extract weights
+        #   extract constant scales from the Hyper-Search model
         trained_hs_model = RepOptVGG(num_blocks=num_blocks, num_classes=100, width_multiplier=width_multiplier, mode='hs')
         weights = torch.load(config.TRAIN.SCALES_PATH, map_location='cpu')
         if 'model' in weights:
@@ -99,7 +113,7 @@ def main(config):
         scales = extract_scales(trained_hs_model)
         print('loading scales from', config.TRAIN.SCALES_PATH)
         del trained_hs_model
-        #   build model
+        #   build target model
         model = RepOptVGG(num_blocks=num_blocks, width_multiplier=width_multiplier, mode='target', num_classes=1000)
         logger.info(str(model))
         #   build RepOptimizer
@@ -166,6 +180,10 @@ def main(config):
         throughput(data_loader_val, model, logger)
         return
 
+    if config.EVAL_MODE:
+        acc1, acc5, loss = validate(config, data_loader_val, model)
+        logger.info(f"Only eval. top-1 acc, top-5 acc, loss: {acc1:.3f}, {acc5:.3f}, {loss:.5f}")
+
     logger.info("Start training")
     start_time = time.time()
     for epoch in range(config.TRAIN.START_EPOCH, config.TRAIN.EPOCHS):
@@ -181,7 +199,7 @@ def main(config):
 
             if data_loader_val is not None:
                 acc1, acc5, loss = validate(config, data_loader_val, model)
-                logger.info(f"Accuracy of the network at epoch {epoch} test images: {acc1:.3f}%")
+                logger.info(f"Accuracy of the network at epoch {epoch}: {acc1:.3f}%")
                 max_accuracy = max(max_accuracy, acc1)
                 logger.info(f'Max accuracy: {max_accuracy:.2f}%')
                 if max_accuracy == acc1 and dist.get_rank() == 0:
@@ -378,7 +396,6 @@ def throughput(data_loader, model, logger):
 
 
 import os
-import subprocess
 
 if __name__ == '__main__':
     args, config = parse_option()

@@ -25,9 +25,7 @@ class RealVGGBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1, use_post_se=False):
         super(RealVGGBlock, self).__init__()
         self.relu = nn.ReLU()
-        kernel_size = 3
-        padding = 1
-        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=False)
+        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn = nn.BatchNorm2d(out_channels)
         if use_post_se:
             self.post_se = SEBlock(out_channels, internal_neurons=out_channels // 4)
@@ -46,15 +44,12 @@ class RepVGGBlock(nn.Module):
                  stride=1, use_post_se=False, deploy=False):
         super(RepVGGBlock, self).__init__()
         self.deploy = deploy
-        kernel_size = 3
-        padding = 1
         self.relu = nn.ReLU()
         if deploy:
-            self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
-                                         stride=stride, padding=padding, bias=True)
+            self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=stride, padding=1, bias=True)
             self.bn = nn.Identity()
         else:
-            self.conv_3x3 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride, padding=padding, bias=False)
+            self.conv_3x3 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
             self.bn_3x3 = nn.BatchNorm2d(out_channels)
             self.conv_1x1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=stride, padding=0, bias=False)
             self.bn_1x1 = nn.BatchNorm2d(out_channels)
@@ -247,7 +242,7 @@ class RepVGGOptimizer(SGD):
                 ids = np.arange(para.shape[1])
                 assert para.shape[1] == para.shape[0]
                 mask[ids, ids, 1:2, 1:2] += 1.0
-            self.grad_mask_map[para] = mask.cuda()
+            self.grad_mask_map[para] = mask.to(para.device)
 
     def __setstate__(self, state):
         super(SGD, self).__setstate__(state)
@@ -255,12 +250,7 @@ class RepVGGOptimizer(SGD):
             group.setdefault('nesterov', False)
 
     def step(self, closure=None):
-        """Performs a single optimization step.
 
-        Arguments:
-            closure (callable, optional): A closure that reevaluates the model
-                and returns the loss.
-        """
         loss = None
         if closure is not None:
             loss = closure()
