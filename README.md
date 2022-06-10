@@ -15,7 +15,7 @@ You may reproduce RepOpt-VGG-B1 by
 
 Hyper-Search. The trained model will be saved to output/RepOpt-VGG-B1-hs/hyper-search/latest.pth
 ```
-3. python3 -m torch.distributed.launch --nproc_per_node 1 --master_port 12349 main_repopt.py --arch RepOpt-VGG-B1-hs --batch-size 256 --tag hyper-search --opts TRAIN.EPOCHS 240 TRAIN.BASE_LR 0.1 TRAIN.WEIGHT_DECAY 4e-5 TRAIN.WARMUP_EPOCHS 5 MODEL.LABEL_SMOOTHING 0.0 DATA.DATASET cf100 DATA.DATA_PATH /path/to/CIFAR100
+3. python3 -m torch.distributed.launch --nproc_per_node 1 --master_port 12349 main_repopt.py --arch RepOpt-VGG-B1-hs --batch-size 256 --tag hyper-search --data-path /path/to/CIFAR100 --opts TRAIN.EPOCHS 240 TRAIN.BASE_LR 0.1 TRAIN.WEIGHT_DECAY 4e-5 TRAIN.WARMUP_EPOCHS 5 MODEL.LABEL_SMOOTHING 0.0 DATA.DATASET cf100
 ```
 
 Use 8 GPUs
