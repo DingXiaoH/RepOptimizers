@@ -20,11 +20,6 @@ If you find the paper or this repository helpful, please consider citing
 
 ## Pre-trained Models
 
-| name | resolution |ImageNet-1K acc | #params | FLOPs | ImageNet-1K pretrained model |
-|:---:|:---:|:---:|:---:| :---:|:---:|
-|RepLKNet-31B|224x224|83.5| 79M   |  15.3G   |[Google Drive](https://drive.google.com/file/d/1azQUiCxK9feYVkkrPqwVPBtNsTzDrX7S/view?usp=sharing), [Baidu](https://pan.baidu.com/s/1gspbbfqooMtegt_DO1TUeA?pwd=lknt)|
-|RepLKNet-31B|384x384|84.8| 79M   |  45.1G   |[Google Drive](https://drive.google.com/file/d/1vo-P3XB6mRLUeDzmgv90dOu73uCeLfZN/view?usp=sharing), [Baidu](https://pan.baidu.com/s/1WhLaCKKv4NuKc3qMYECOIQ?pwd=lknt)|
-
 
 ## Evaluation
 
