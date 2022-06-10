@@ -2,28 +2,40 @@
 
 This is the official repository of [Re-parameterizing Your Optimizers rather than Architectures](https://arxiv.org/abs/2205.15242).
 
-Will update with the model weights, more use cases and a detailed README in two days.
+If you find the paper or this repository helpful, please consider citing
 
-You may reproduce RepOpt-VGG-B1 by
+        @article{ding2022re,
+        title={Re-parameterizing Your Optimizers rather than Architectures},
+        author={Ding, Xiaohan and Chen, Honghao and Zhang, Xiangyu and Huang, Kaiqi and Han, Jungong and Ding, Guiguang},
+        journal={arXiv preprint arXiv:2205.15242},
+        year={2022}
+        }
 
-```
-1. mkdir output
-```
-```
-2. export CUDA_VISIBLE_DEVICES=0
-```
+## Catalog
+- [x] Model code
+- [] PyTorch pretrained models
+- [] PyTorch training code
 
-Hyper-Search. The trained model will be saved to output/RepOpt-VGG-B1-hs/hyper-search/latest.pth
-```
-3. python3 -m torch.distributed.launch --nproc_per_node 1 --master_port 12349 main_repopt.py --arch RepOpt-VGG-B1-hs --batch-size 256 --tag hyper-search --data-path /path/to/CIFAR100 --opts TRAIN.EPOCHS 240 TRAIN.BASE_LR 0.1 TRAIN.WEIGHT_DECAY 4e-5 TRAIN.WARMUP_EPOCHS 5 MODEL.LABEL_SMOOTHING 0.0 DATA.DATASET cf100
-```
+<!-- ✅ ⬜️  -->
 
-Use 8 GPUs
-```
-4. export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-```
+## Pre-trained Models
 
-Train on ImageNet
-```
-5. python3 -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_repopt.py --arch RepOpt-VGG-B1-target --batch-size 32 --tag target --scales-path output/RepOpt-VGG-B1-hs/hyper-search/latest.pth --opts TRAIN.EPOCHS 120 TRAIN.BASE_LR 0.1 TRAIN.WEIGHT_DECAY 4e-5 TRAIN.WARMUP_EPOCHS 5 MODEL.LABEL_SMOOTHING 0.1 AUG.PRESET raug15 DATA.DATASET imagenet DATA.DATA_PATH /path/to/ImageNet
-```
+| name | resolution |ImageNet-1K acc | #params | FLOPs | ImageNet-1K pretrained model |
+|:---:|:---:|:---:|:---:| :---:|:---:|
+|RepLKNet-31B|224x224|83.5| 79M   |  15.3G   |[Google Drive](https://drive.google.com/file/d/1azQUiCxK9feYVkkrPqwVPBtNsTzDrX7S/view?usp=sharing), [Baidu](https://pan.baidu.com/s/1gspbbfqooMtegt_DO1TUeA?pwd=lknt)|
+|RepLKNet-31B|384x384|84.8| 79M   |  45.1G   |[Google Drive](https://drive.google.com/file/d/1vo-P3XB6mRLUeDzmgv90dOu73uCeLfZN/view?usp=sharing), [Baidu](https://pan.baidu.com/s/1WhLaCKKv4NuKc3qMYECOIQ?pwd=lknt)|
+
+
+## Evaluation
+
+
+## Training
+
+### Hyper-Search on CIFAR-100
+
+### Train the target model on ImageNet
+
+
+## License
+This project is released under the MIT license. Please see the [LICENSE](LICENSE) file for more information.
+
