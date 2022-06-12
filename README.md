@@ -28,7 +28,7 @@ Uploading.
 
 ## Training
 
-To reproduce RepOpt-VGG-B1, you may build a RepOptimizer with our released constants ```RepOpt-VGG-B1-scales.pth```
+To reproduce RepOpt-VGG-B1, you may build a RepOptimizer with our released constants ```RepOpt-VGG-B1-scales.pth``` and train a RepOpt-VGG-B1 with it.
 ```
 python3 -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_repopt.py --data-path /path/to/imagenet --arch RepOpt-VGG-B1-target --batch-size 32 --tag experiment --scales-path RepOpt-VGG-B1-scales.pth --opts TRAIN.EPOCHS 120 TRAIN.BASE_LR 0.1 TRAIN.WEIGHT_DECAY 4e-5 TRAIN.WARMUP_EPOCHS 5 MODEL.LABEL_SMOOTHING 0.1 AUG.PRESET raug15 DATA.DATASET imagenet
 ```
