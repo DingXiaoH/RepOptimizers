@@ -183,7 +183,8 @@ class RepVGGOptimizer(SGD):
     def __init__(self, model, scales, num_blocks, width_multiplier,
                  lr, momentum=0, dampening=0,
                  weight_decay=0, nesterov=False,
-                 reinit=True, use_identity_scales_for_reinit=True):
+                 reinit=True, use_identity_scales_for_reinit=True,
+                 cpu_mode=False):
         defaults = dict(lr=lr, momentum=momentum, dampening=dampening, weight_decay=weight_decay, nesterov=nesterov)
         if nesterov and (momentum <= 0 or dampening != 0):
             raise ValueError("Nesterov momentum requires a momentum and zero dampening")
@@ -207,7 +208,7 @@ class RepVGGOptimizer(SGD):
             print('##################### Re-initialize #############')
             self.reinitialize(scales, convs, use_identity_scales_for_reinit)
 
-        self.generate_gradient_masks(scales, convs)
+        self.generate_gradient_masks(scales, convs, cpu_mode)
 
     def reinitialize(self, scales_by_idx, conv3x3_by_idx, use_identity_scales):
         for scales, conv3x3 in zip(scales_by_idx, conv3x3_by_idx):
@@ -229,7 +230,7 @@ class RepVGGOptimizer(SGD):
                     conv3x3.weight.data += F.pad(identity, [1, 1, 1, 1])
 
 
-    def generate_gradient_masks(self, scales_by_idx, conv3x3_by_idx):
+    def generate_gradient_masks(self, scales_by_idx, conv3x3_by_idx, cpu_mode=False):
         self.grad_mask_map = {}
         for scales, conv3x3 in zip(scales_by_idx, conv3x3_by_idx):
             para = conv3x3.weight
@@ -242,7 +243,10 @@ class RepVGGOptimizer(SGD):
                 ids = np.arange(para.shape[1])
                 assert para.shape[1] == para.shape[0]
                 mask[ids, ids, 1:2, 1:2] += 1.0
-            self.grad_mask_map[para] = mask.to(para.device)
+            if cpu_mode:
+                self.grad_mask_map[para] = mask
+            else:
+                self.grad_mask_map[para] = mask.cuda()
 
     def __setstate__(self, state):
         super(SGD, self).__setstate__(state)
