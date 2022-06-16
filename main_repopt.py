@@ -109,9 +109,12 @@ def main(config):
         weights = torch.load(config.TRAIN.SCALES_PATH, map_location='cpu')
         if 'model' in weights:
             weights = weights['model']
+        scales = extract_scales(trained_hs_model)
+        print('check: before loading scales ', scales[-2][-1].mean(), scales[-2][-2].mean())
         trained_hs_model.load_state_dict(weights, strict=False)
         scales = extract_scales(trained_hs_model)
         print('loading scales from', config.TRAIN.SCALES_PATH)
+        print('check: after loading scales ', scales[-2][-1].mean(), scales[-2][-2].mean())
         del trained_hs_model
         #   build target model
         model = RepOptVGG(num_blocks=num_blocks, width_multiplier=width_multiplier, mode='target', num_classes=1000)
