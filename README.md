@@ -27,21 +27,17 @@ RepOptimizer and RepOpt-VGG have been used in **YOLOv6** ([paper](https://arxiv.
 
 ## Design
 
-RepOptimizers currently support two update rules (SGD with momentum and AdamW) and two models (RepOpt-VGG and [RepOpt-MLPNet](https://github.com/DingXiaoH/RepMLP)).
+RepOptimizers currently support two update rules (SGD with momentum and AdamW) and two models (RepOpt-VGG and [RepOpt-MLPNet](https://github.com/DingXiaoH/RepMLP)). While re-designing the code of RepOptimizer, I decided to separate the update-rule-related behaviors and model-specific behaviors.
 
-The key components of our implementation (please see ```repoptimizer/```) include
+The key components of the new implementation (please see ```repoptimizer/```) include
 
 **Model**: ```repoptvgg_model.py``` and ```repoptmlp_model.py``` define the model architecutres, including the target and search structures.
 
-**Model-specific Handler**: a ```RepOptimizerHandler``` defines the model-specific behavior of RepOptimizer given the searched scales, which include
-
-1. re-initializing the model (Rule of Initialization)
-
-2. generating the Grad Mults (Rule of Iteration)
+**Model-specific Handler**: a ```RepOptimizerHandler``` defines the model-specific behavior of RepOptimizer given the searched scales, which include 1) re-initializing the model (i.e., Rule of Initialization) and 2) generating the Grad Mults (i.e., Rule of Iteration).
 
 For example, ```RepOptVGGHandler``` (see ```repoptvgg_impl.py```) implements the formulas presented in the paper.
 
-**Update rule**: ```repoptimizer_sgd.py``` and ```repoptimizer_adamw.py``` define the behavior of RepOptimizers based on different update rules. The differences between a RepOptimizer and its regular counterpart (```torch.optim.SGD``` or ```torch.optim.AdamW```) are 
+**Update rule**: ```repoptimizer_sgd.py``` and ```repoptimizer_adamw.py``` define the behavior of RepOptimizers based on different update rules. The differences between a RepOptimizer and its regular counterpart (```torch.optim.SGD``` or ```torch.optim.AdamW```) include 
 
 1. RepOptimizers take one more argument: ```grad_mult_map```. It is a dict where the key is the parameter (```torch.nn.Parameter```) and the value is the corresponding Grad Mult (```torch.Tensor```). The Grad Mults are outputs from RepOptimizerHandler and will be stored in memory.
 
