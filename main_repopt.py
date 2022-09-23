@@ -77,10 +77,10 @@ def main(config):
 
     logger.info(f"Creating model:{config.MODEL.ARCH}")
 
-    if 'vgg' in config.MODEL.ARCH.lower():
+    if 'vgg' in config.MODEL.ARCH.lower() or 'B1' in config.MODEL.ARCH or 'B2' in config.MODEL.ARCH or 'L1' in config.MODEL.ARCH or 'L2' in config.MODEL.ARCH:
 
         from repoptimizer.repoptvgg_model import RepOptVGG
-        from repoptimizer.repoptvgg_handler import RepOptVGGHandler, extract_scales
+        from repoptimizer.repoptvgg_impl import RepOptVGGHandler, extract_scales
         from repoptimizer.repoptimizer_sgd import RepOptimizerSGD
 
         if 'B1' in config.MODEL.ARCH:
@@ -114,31 +114,17 @@ def main(config):
             if config.EVAL_MODE or '-norepopt' in config.MODEL.ARCH:
                 optimizer = build_optimizer(config, model)  # just a placeholder for testing or the ablation study with regular optimizer for training
             else:
-                #   extract constant scales from the Hyper-Search model
-                trained_hs_model = RepOptVGG(num_blocks=num_blocks, num_classes=100, width_multiplier=width_multiplier, mode='hs')
-                weights = torch.load(config.TRAIN.SCALES_PATH, map_location='cpu')
-                if 'model' in weights:
-                    weights = weights['model']
-                scales = extract_scales(trained_hs_model)
-                print('check: before loading scales ', scales[-2][-1].mean(), scales[-2][-2].mean())
-                trained_hs_model.load_state_dict(weights, strict=False)
-                scales = extract_scales(trained_hs_model)
-                print('========================================== loading scales from', config.TRAIN.SCALES_PATH)
-                print('check: after loading scales ', scales[-2][-1].mean(), scales[-2][-2].mean())
-                del trained_hs_model
-                #   build RepOptimizer
-                handler = RepOptVGGHandler(model, scales, reinit=True, update_rule='sgd')
-                handler.reinitialize()
-                params = set_weight_decay(model)
-                optimizer = RepOptimizerSGD(handler.generate_grad_mults(), params, lr=config.TRAIN.BASE_LR,
+                from repoptimizer.repoptvgg_impl import extract_RepOptVGG_scales_from_pth, build_RepOptVGG_SGD_optimizer
+                scales = extract_RepOptVGG_scales_from_pth(num_blocks=num_blocks, width_multiplier=width_multiplier,
+                                                           scales_path=config.TRAIN.SCALES_PATH, search_num_classes=100)
+                optimizer = build_RepOptVGG_SGD_optimizer(model, scales, lr=config.TRAIN.BASE_LR,
                                             momentum=config.TRAIN.OPTIMIZER.MOMENTUM,
-                                            weight_decay=config.TRAIN.WEIGHT_DECAY, nesterov=True)
+                                            weight_decay=config.TRAIN.WEIGHT_DECAY)
         else:
             raise ValueError('not supported')
 
     elif 'mlp' in config.MODEL.ARCH.lower():
-
-        raise ValueError('TODO: in one week')
+        raise ValueError('TODO')
 
     else:
         raise ValueError('TODO: support other models except for RepOpt-VGG and RepOpt-MLPNet.')

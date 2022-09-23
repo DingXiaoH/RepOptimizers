@@ -49,7 +49,7 @@ class RepOptimizerSGD(SGD):
                         buf = param_state['momentum_buffer']
                         buf.mul_(momentum).add_(d_p, alpha=1 - dampening)
                     if nesterov:
-                        d_p = d_p.add(momentum, buf)
+                        d_p = d_p.add(buf, momentum)
                     else:
                         d_p = buf
 

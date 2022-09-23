@@ -7,7 +7,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from repoptimizer.repoptimizer_utils import RepOptimizerHandler
-from repoptvgg_model import *
+from repoptimizer.repoptvgg_model import LinearAddBlock, RealVGGBlock, RepOptVGG
+from repoptimizer.repoptimizer_sgd import RepOptimizerSGD
 import numpy as np
 
 
@@ -15,10 +16,9 @@ def extract_blocks_into_list(model):
     stages = [model.stage0, model.stage1, model.stage2, model.stage3, model.stage4]
     blocks = []
     for stage in stages:
-        if isinstance(stage, RealVGGBlock) or isinstance(stage, LinearAddBlock):
+        if type(stage) in [RealVGGBlock, LinearAddBlock]:
             blocks.append(stage)
         else:
-            assert isinstance(stage, nn.Sequential)
             for block in stage.children():
                 assert isinstance(block, RealVGGBlock) or isinstance(block, LinearAddBlock)
                 blocks.append(block)
@@ -91,17 +91,17 @@ class RepOptVGGHandler(RepOptimizerHandler):
     def generate_grad_mults(self):
         grad_mult_map = {}
         if self.update_rule == 'sgd':
-            order = 2
+            power = 2
         else:
-            order = 1
+            power = 1
         for scales, conv3x3 in zip(self.scales, self.convs):
             para = conv3x3.weight
             if len(scales) == 2:
-                mask = torch.ones_like(para) * (scales[1] ** order).view(-1, 1, 1, 1)
-                mask[:, :, 1:2, 1:2] += torch.ones(para.shape[0], para.shape[1], 1, 1) * (scales[0] ** order).view(-1, 1, 1, 1)
+                mask = torch.ones_like(para) * (scales[1] ** power).view(-1, 1, 1, 1)
+                mask[:, :, 1:2, 1:2] += torch.ones(para.shape[0], para.shape[1], 1, 1) * (scales[0] ** power).view(-1, 1, 1, 1)
             else:
-                mask = torch.ones_like(para) * (scales[2] ** order).view(-1, 1, 1, 1)
-                mask[:, :, 1:2, 1:2] += torch.ones(para.shape[0], para.shape[1], 1, 1) * (scales[1] ** order).view(-1, 1, 1, 1)
+                mask = torch.ones_like(para) * (scales[2] ** power).view(-1, 1, 1, 1)
+                mask[:, :, 1:2, 1:2] += torch.ones(para.shape[0], para.shape[1], 1, 1) * (scales[1] ** power).view(-1, 1, 1, 1)
                 ids = np.arange(para.shape[1])
                 assert para.shape[1] == para.shape[0]
                 mask[ids, ids, 1:2, 1:2] += 1.0
@@ -110,3 +110,27 @@ class RepOptVGGHandler(RepOptimizerHandler):
             else:
                 grad_mult_map[para] = mask.cuda()
         return grad_mult_map
+
+
+def build_RepOptVGG_SGD_optimizer(model, scales, lr, momentum=0.9, weight_decay=4e-5):
+    from optimizer import set_weight_decay
+    handler = RepOptVGGHandler(model, scales, reinit=True, update_rule='sgd')
+    handler.reinitialize()
+    params = set_weight_decay(model)
+    optimizer = RepOptimizerSGD(handler.generate_grad_mults(), params, lr=lr,
+                                momentum=momentum, weight_decay=weight_decay, nesterov=True)
+    return optimizer
+
+
+def extract_RepOptVGG_scales_from_pth(num_blocks, width_multiplier, scales_path, search_num_classes=100):
+    trained_hs_model = RepOptVGG(num_blocks=num_blocks, num_classes=search_num_classes, width_multiplier=width_multiplier, mode='hs')
+    weights = torch.load(scales_path, map_location='cpu')
+    if 'model' in weights:
+        weights = weights['model']
+    scales = extract_scales(trained_hs_model)
+    print('check: before loading scales ', scales[-2][-1].mean(), scales[-2][-2].mean())
+    trained_hs_model.load_state_dict(weights, strict=False)
+    scales = extract_scales(trained_hs_model)
+    print('========================================== loading scales from', scales_path)
+    print('check: after loading scales ', scales[-2][-1].mean(), scales[-2][-2].mean())
+    return scales
