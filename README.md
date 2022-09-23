@@ -13,6 +13,11 @@ If you find the paper or this repository helpful, please consider citing
         year={2022}
         }
 
+
+## Highlights
+
+RepOptimizer and RepOpt-VGG have been used in **YOLOv6** ([paper](https://arxiv.org/abs/2209.02976), [code](https://github.com/meituan/YOLOv6)) and **deployed in business**. The methodology of Structural Re-parameterization also plays a critical role in **YOLOv7** ([paper](https://arxiv.org/abs/2207.02696), [code](https://github.com/WongKinYiu/yolov7)).
+
 ## Catalog
 - [x] Model code
 - [ ] PyTorch pretrained models
