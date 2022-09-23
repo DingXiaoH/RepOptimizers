@@ -1,5 +1,7 @@
 # RepOptimizers
 
+(Sep 23rd: Refactoring. Will finish in two days. Will release models in one weak.)
+
 This is the official repository of [Re-parameterizing Your Optimizers rather than Architectures](https://arxiv.org/abs/2205.15242).
 
 If you find the paper or this repository helpful, please consider citing
