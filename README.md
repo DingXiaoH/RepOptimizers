@@ -19,11 +19,34 @@ If you find the paper or this repository helpful, please consider citing
 RepOptimizer and RepOpt-VGG have been used in **YOLOv6** ([paper](https://arxiv.org/abs/2209.02976), [code](https://github.com/meituan/YOLOv6)) and **deployed in business**. The methodology of Structural Re-parameterization also plays a critical role in **YOLOv7** ([paper](https://arxiv.org/abs/2207.02696), [code](https://github.com/WongKinYiu/yolov7)).
 
 ## Catalog
-- [x] Model code
+- [x] Code
 - [ ] PyTorch pretrained models
 - [ ] PyTorch training code
 
 <!-- ✅ ⬜️  -->
+
+## Design
+
+RepOptimizers currently support two update rules (SGD with momentum and AdamW) and two models (RepOpt-VGG and [RepOpt-MLPNet](https://github.com/DingXiaoH/RepMLP)).
+
+The key components of our implementation (please see ```repoptimizer/```) include
+
+**Model**: ```repoptvgg_model.py``` and ```repoptmlp_model.py``` define the model architecutres, including the target and search structures.
+
+**Model-specific Handler**: a ```RepOptimizerHandler``` defines the model-specific behavior of RepOptimizer given the searched scales, which include
+
+1. re-initializing the model (Rule of Initialization)
+
+2. generating the Grad Mults (Rule of Iteration)
+
+For example, ```RepOptVGGHandler``` (see ```repoptvgg_impl.py```) implements the formulas presented in the paper.
+
+**Update rule**: ```repoptimizer_sgd.py``` and ```repoptimizer_adamw.py``` define the behavior of RepOptimizers based on different update rules. The differences between a RepOptimizer and its regular counterpart (```torch.optim.SGD``` or ```torch.optim.AdamW```) are 
+
+1. RepOptimizers take one more argument: ```grad_mult_map```. It is a dict where the key is the parameter (```torch.nn.Parameter```) and the value is the corresponding Grad Mult (```torch.Tensor```). The Grad Mults are outputs from RepOptimizerHandler and will be stored in memory.
+
+2. In the ```step``` function, RepOptimizers will use the Grad Mults properly. For SGD, please see [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptimizer_sgd.py#L38). For AdamW, please see [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptimizer_adamw.py#L145) and [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptimizer_adamw.py#L274).
+
 
 ## Pre-trained Models
 
