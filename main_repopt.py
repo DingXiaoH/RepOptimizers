@@ -17,10 +17,10 @@ from config import get_config
 from data import build_loader
 from lr_scheduler import build_scheduler
 from logger import create_logger
-from utils import load_checkpoint, save_checkpoint, get_grad_norm, auto_resume_helper, reduce_tensor, save_latest, update_model_ema, unwrap_model, load_weights
+from utils import load_checkpoint, save_checkpoint, get_grad_norm, auto_resume_helper, reduce_tensor, save_latest, update_model_ema, unwrap_model
 import copy
-from repoptvgg import RepVGGOptimizer, RepOptVGG, extract_scales
-from optimizer import build_optimizer
+from optimizer import build_optimizer, set_weight_decay
+
 
 try:
     # noinspection PyUnresolvedReferences
@@ -77,56 +77,73 @@ def main(config):
 
     logger.info(f"Creating model:{config.MODEL.ARCH}")
 
-    if 'B1' in config.MODEL.ARCH:
-        num_blocks = [4, 6, 16, 1]
-        width_multiplier = [2, 2, 2, 4]
-    elif 'B2' in config.MODEL.ARCH:
-        num_blocks = [4, 6, 16, 1]
-        width_multiplier = [2.5, 2.5, 2.5, 5]
-    elif 'L1' in config.MODEL.ARCH:
-        num_blocks = [8, 14, 24, 1]
-        width_multiplier = [2, 2, 2, 4]
-    elif 'L2' in config.MODEL.ARCH:
-        num_blocks = [8, 14, 24, 1]
-        width_multiplier = [2.5, 2.5, 2.5, 5]
+    if 'vgg' in config.MODEL.ARCH.lower():
+
+        from repoptimizer.repoptvgg_model import RepOptVGG
+        from repoptimizer.repoptvgg_handler import RepOptVGGHandler, extract_scales
+        from repoptimizer.repoptimizer_sgd import RepOptimizerSGD
+
+        if 'B1' in config.MODEL.ARCH:
+            num_blocks = [4, 6, 16, 1]
+            width_multiplier = [2, 2, 2, 4]
+        elif 'B2' in config.MODEL.ARCH:
+            num_blocks = [4, 6, 16, 1]
+            width_multiplier = [2.5, 2.5, 2.5, 5]
+        elif 'L1' in config.MODEL.ARCH:
+            num_blocks = [8, 14, 24, 1]
+            width_multiplier = [2, 2, 2, 4]
+        elif 'L2' in config.MODEL.ARCH:
+            num_blocks = [8, 14, 24, 1]
+            width_multiplier = [2.5, 2.5, 2.5, 5]
+        else:
+            raise ValueError('Not yet supported. You may add the architectural settings here.')
+
+        if '-hs' in config.MODEL.ARCH:
+            assert config.DATA.DATASET == 'cf100'
+            model = RepOptVGG(num_blocks=num_blocks, num_classes=100, width_multiplier=width_multiplier, mode='hs')
+            optimizer = build_optimizer(config, model)
+        elif '-repvgg' in config.MODEL.ARCH:
+            #   as baseline
+            assert config.DATA.DATASET == 'imagenet'
+            model = RepOptVGG(num_blocks=num_blocks, width_multiplier=width_multiplier, mode='repvgg', num_classes=1000)
+            optimizer = build_optimizer(config, model)
+        elif '-target' in config.MODEL.ARCH:
+            assert config.DATA.DATASET == 'imagenet'
+            #   build target model
+            model = RepOptVGG(num_blocks=num_blocks, width_multiplier=width_multiplier, mode='target', num_classes=1000)
+            if config.EVAL_MODE or '-norepopt' in config.MODEL.ARCH:
+                optimizer = build_optimizer(config, model)  # just a placeholder for testing or the ablation study with regular optimizer for training
+            else:
+                #   extract constant scales from the Hyper-Search model
+                trained_hs_model = RepOptVGG(num_blocks=num_blocks, num_classes=100, width_multiplier=width_multiplier, mode='hs')
+                weights = torch.load(config.TRAIN.SCALES_PATH, map_location='cpu')
+                if 'model' in weights:
+                    weights = weights['model']
+                scales = extract_scales(trained_hs_model)
+                print('check: before loading scales ', scales[-2][-1].mean(), scales[-2][-2].mean())
+                trained_hs_model.load_state_dict(weights, strict=False)
+                scales = extract_scales(trained_hs_model)
+                print('========================================== loading scales from', config.TRAIN.SCALES_PATH)
+                print('check: after loading scales ', scales[-2][-1].mean(), scales[-2][-2].mean())
+                del trained_hs_model
+                #   build RepOptimizer
+                handler = RepOptVGGHandler(model, scales, reinit=True, update_rule='sgd')
+                handler.reinitialize()
+                params = set_weight_decay(model)
+                optimizer = RepOptimizerSGD(handler.generate_grad_mults(), params, lr=config.TRAIN.BASE_LR,
+                                            momentum=config.TRAIN.OPTIMIZER.MOMENTUM,
+                                            weight_decay=config.TRAIN.WEIGHT_DECAY, nesterov=True)
+        else:
+            raise ValueError('not supported')
+
+    elif 'mlp' in config.MODEL.ARCH.lower():
+
+        raise ValueError('TODO: in one week')
+
     else:
-        raise ValueError('Not yet supported. You may add the architectural settings here.')
+        raise ValueError('TODO: support other models except for RepOpt-VGG and RepOpt-MLPNet.')
 
-
-    if '-hs' in config.MODEL.ARCH:
-        assert config.DATA.DATASET == 'cf100'
-        model = RepOptVGG(num_blocks=num_blocks, num_classes=100, width_multiplier=width_multiplier, mode='hs')
-        optimizer = build_optimizer(config, model)
-    elif '-repvgg' in config.MODEL.ARCH:
-        #   as baseline
-        assert config.DATA.DATASET == 'imagenet'
-        model = RepOptVGG(num_blocks=num_blocks, width_multiplier=width_multiplier, mode='repvgg', num_classes=1000)
-        optimizer = build_optimizer(config, model)
-    elif '-target' in config.MODEL.ARCH:
-        assert config.DATA.DATASET == 'imagenet'
-        #   extract constant scales from the Hyper-Search model
-        trained_hs_model = RepOptVGG(num_blocks=num_blocks, num_classes=100, width_multiplier=width_multiplier, mode='hs')
-        weights = torch.load(config.TRAIN.SCALES_PATH, map_location='cpu')
-        if 'model' in weights:
-            weights = weights['model']
-        scales = extract_scales(trained_hs_model)
-        print('check: before loading scales ', scales[-2][-1].mean(), scales[-2][-2].mean())
-        trained_hs_model.load_state_dict(weights, strict=False)
-        scales = extract_scales(trained_hs_model)
-        print('loading scales from', config.TRAIN.SCALES_PATH)
-        print('check: after loading scales ', scales[-2][-1].mean(), scales[-2][-2].mean())
-        del trained_hs_model
-        #   build target model
-        model = RepOptVGG(num_blocks=num_blocks, width_multiplier=width_multiplier, mode='target', num_classes=1000)
-        logger.info(str(model))
-        #   build RepOptimizer
-        optimizer = RepVGGOptimizer(model, scales, num_blocks, width_multiplier,
-                                    lr=config.TRAIN.BASE_LR, momentum=config.TRAIN.OPTIMIZER.MOMENTUM,
-                                    weight_decay=config.TRAIN.WEIGHT_DECAY, nesterov=True, reinit=True)
-    else:
-        raise ValueError('Not supported')
-
-
+    logger.info(str(model))
     model.cuda()
 
     if torch.cuda.device_count() > 1:

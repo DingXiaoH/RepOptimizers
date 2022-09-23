@@ -21,7 +21,7 @@ _C.DATA = CN()
 # Batch size for a single GPU, could be overwritten by command line argument
 _C.DATA.BATCH_SIZE = 128
 # Path to dataset, could be overwritten by command line argument
-_C.DATA.DATA_PATH = '/path/to/cf100/'
+_C.DATA.DATA_PATH = '/apdcephfs_cq2/share_1290939/xiaohanding/datasets/cifar100'
 
 # Dataset name
 _C.DATA.DATASET = 'imagenet'
@@ -199,7 +199,7 @@ def update_config(config, args):
     if config.DATA.TEST_SIZE is None:
         config.DATA.TEST_SIZE = config.DATA.IMG_SIZE
     if config.DATA.TEST_BATCH_SIZE is None:
-        config.DATA.TEST_BATCH_SIZE = config.DATA.BATCH_SIZE // 4
+        config.DATA.TEST_BATCH_SIZE = config.DATA.BATCH_SIZE // 2
     # set local rank for distributed training
     config.LOCAL_RANK = args.local_rank
     # output folder

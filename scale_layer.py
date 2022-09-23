@@ -10,7 +10,7 @@ import torch.nn.init as init
 
 class ScaleLayer(torch.nn.Module):
 
-    def __init__(self, num_features, use_bias=True, scale_init=1.0):
+    def __init__(self, num_features, use_bias=False, scale_init=1.0):
         super(ScaleLayer, self).__init__()
         self.weight = Parameter(torch.Tensor(num_features))
         init.constant_(self.weight, scale_init)
