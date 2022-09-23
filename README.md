@@ -25,6 +25,17 @@ RepOptimizer and RepOpt-VGG have been used in **YOLOv6** ([paper](https://arxiv.
 
 <!-- ✅ ⬜️  -->
 
+## Verify the equivalency GR = CSLA
+
+Tired of reading proof? We provide a script demonstrating the equivalency of GR = CSLA in **both SGD and AdamW** cases.
+
+You may run the following script to verify the equivalency (GR = CSLA) on an experimental model. You can even run without a GPU.
+
+```
+python check_equivalency.py
+```
+
+
 ## Design
 
 RepOptimizers currently support two update rules (SGD with momentum and AdamW) and two models (RepOpt-VGG and [RepOpt-MLPNet](https://github.com/DingXiaoH/RepMLP)). While re-designing the code of RepOptimizer, I decided to separate the update-rule-related behaviors and model-specific behaviors.
@@ -39,7 +50,7 @@ For example, ```RepOptVGGHandler``` (see ```repoptvgg_impl.py```) implements the
 
 **Update rule**: ```repoptimizer_sgd.py``` and ```repoptimizer_adamw.py``` define the behavior of RepOptimizers based on different update rules. The differences between a RepOptimizer and its regular counterpart (```torch.optim.SGD``` or ```torch.optim.AdamW```) include 
 
-1. RepOptimizers take one more argument: ```grad_mult_map```. It is a dict where the key is the parameter (```torch.nn.Parameter```) and the value is the corresponding Grad Mult (```torch.Tensor```). The Grad Mults are outputs from RepOptimizerHandler and will be stored in memory.
+1. RepOptimizers take one more argument, ```grad_mult_map```, which is the output from RepOptimizerHandler and will be stored in memory. It is a dict where the key is the parameter (```torch.nn.Parameter```) and the value is the corresponding Grad Mult (```torch.Tensor```).
 
 2. In the ```step``` function, RepOptimizers will use the Grad Mults properly. For SGD, please see [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptimizer_sgd.py#L38). For AdamW, please see [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptimizer_adamw.py#L145) and [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptimizer_adamw.py#L274).
 
