@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 nori_*
+_submit_
 
 # C extensions
 *.so
