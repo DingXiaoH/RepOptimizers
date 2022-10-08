@@ -13,20 +13,70 @@ If you find the paper or this repository helpful, please consider citing
         year={2022}
         }
 
-## Catalog
-- [x] Model code
-- [ ] PyTorch pretrained models
-- [ ] PyTorch training code
+
+# Highlights
+
+RepOptimizer and RepOpt-VGG have been used in **YOLOv6** ([paper](https://arxiv.org/abs/2209.02976), [code](https://github.com/meituan/YOLOv6)) and **deployed in business**. The methodology of Structural Re-parameterization also plays a critical role in **YOLOv7** ([paper](https://arxiv.org/abs/2207.02696), [code](https://github.com/WongKinYiu/yolov7)).
+
+# Catalog
+- [x] Code
+- [x] PyTorch pretrained models
+- [x] PyTorch training code
 
 <!-- ✅ ⬜️  -->
 
-## Pre-trained Models
+# Verify the equivalency GR = CSLA
 
-Uploading.
+Tired of reading proof? We provide a script demonstrating the equivalency of GR = CSLA in **both SGD and AdamW** cases.
 
+You may run the following script to verify the equivalency (GR = CSLA) on an experimental model. You can even run without a GPU.
+
+```
+python check_equivalency.py
+```
+
+
+# Design
+
+RepOptimizers currently support two update rules (SGD with momentum and AdamW) and two models (RepOpt-VGG and [RepOpt-MLPNet](https://github.com/DingXiaoH/RepMLP)). While re-designing the code of RepOptimizer, I decided to separate the update-rule-related behaviors and model-specific behaviors.
+
+The key components of the new implementation (please see ```repoptimizer/```) include
+
+**Model**: ```repoptvgg_model.py``` and ```repoptmlp_model.py``` define the model architecutres, including the target and search structures.
+
+**Model-specific Handler**: a ```RepOptimizerHandler``` defines the model-specific behavior of RepOptimizer given the searched scales, which include 1) re-initializing the model (i.e., Rule of Initialization) and 2) generating the Grad Mults (i.e., Rule of Iteration).
+
+For example, ```RepOptVGGHandler``` (see ```repoptvgg_impl.py```) implements the formulas presented in the paper.
+
+**Update rule**: ```repoptimizer_sgd.py``` and ```repoptimizer_adamw.py``` define the behavior of RepOptimizers based on different update rules. The differences between a RepOptimizer and its regular counterpart (```torch.optim.SGD``` or ```torch.optim.AdamW```) include 
+
+1. RepOptimizers take one more argument, ```grad_mult_map```, which is the output from RepOptimizerHandler and will be stored in memory. It is a dict where the key is the parameter (```torch.nn.Parameter```) and the value is the corresponding Grad Mult (```torch.Tensor```).
+
+2. In the ```step``` function, RepOptimizers will use the Grad Mults properly. For SGD, please see [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptimizer_sgd.py#L38). For AdamW, please see [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptimizer_adamw.py#L145) and [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptimizer_adamw.py#L274).
+
+
+# Pre-trained Models
+
+We have released the models pre-trained with this codebase.
+
+| name | ImageNet-1K acc | #params | download |
+|:---:|:---:|:---:|:---:|
+|RepOpt-VGG-B1|  78.62  |  51.8M  | [Google Drive](https://drive.google.com/file/d/1kBDue-19AG0Rm2NaS5h6aTl-ZHvdPe5K/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1Zs-eStqDEQIfymGFnIwR-A?pwd=rvgg) |
+|RepOpt-VGG-B2|         |    |    |  |
+|RepOpt-VGG-L1|  79.82  |  76.0   | [Google Drive](https://drive.google.com/file/d/19wd13WgBK6LtyLVA_N9ZjFYaLwduywnm/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1CsbNRqGZIPuejavxaeClGQ?pwd=rvgg) |
+|RepOpt-VGG-L2|  80.47  |  118.1  | [Google Drive](https://drive.google.com/file/d/1PG0sSqOTRdnVoBS_ZBKPShcOIyHNLze6/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1D5KuqjcXGW-CsdNm9UZzvQ?pwd=rvgg) |
+
+
+# Use cases
+
+The following cases use RepOpt-VGG-B1 as an example. You may replace ```RepOpt-VGG-B1``` by ```RepOpt-VGG-B2```, ```RepOpt-VGG-L1```, or ```RepOpt-VGG-L2``` as you wish.
 
 ## Evaluation
 
+You may test our released models by
+```
+python -m torch.distributed.launch --nproc_per_node {your_num_gpus} --master_port 12349 main_repopt.py --arch RepOpt-VGG-B1-target --tag test --eval --resume RepOpt-VGG-B1-acc78.62.pth --data-path /path/to/imagenet --batch-size 32 --opts DATA.DATASET imagenet
+```
 
 ## Training
 
@@ -36,7 +86,27 @@ python3 -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_
 ```
 The log and weights will be saved to ```output/RepOpt-VGG-B1-target/experiment/```
 
-Will update with more use cases in several days.
+## Hyper-Search
+
+Besides using our released scales, you may Hyper-Search by
+```
+python3 -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_repopt.py --data-path /path/to/search/dataset --arch RepOpt-VGG-B1-hs --batch-size 32 --tag search --opts TRAIN.EPOCHS 240 TRAIN.BASE_LR 0.1 TRAIN.WEIGHT_DECAY 4e-5 TRAIN.WARMUP_EPOCHS 10 MODEL.LABEL_SMOOTHING 0.1 DATA.DATASET cf100 TRAIN.CLIP_GRAD 5.0
+```
+
+(Note that since the model seems too big for such a small dataset, we use grad clipping to stablize the training. But do not use grad clipping while training with RepOptimizer! That would break the equivalency.)
+
+The weights of the search model will be saved to ```output/RepOpt-VGG-B1-hs/search/latest.pth```
+
+Then you may train with it by
+```
+python3 -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_repopt.py --data-path /path/to/imagenet --arch RepOpt-VGG-B1-target --batch-size 32 --tag experiment --scales-path output/RepOpt-VGG-B1-hs/search/latest.pth --opts TRAIN.EPOCHS 120 TRAIN.BASE_LR 0.1 TRAIN.WEIGHT_DECAY 4e-5 TRAIN.WARMUP_EPOCHS 5 MODEL.LABEL_SMOOTHING 0.1 AUG.PRESET raug15 DATA.DATASET imagenet
+```
+
+## Use RepOptimizer and RepOpt-VGG in your code
+
+Given the searched scales (saved in a ```.pth``` file), you may conveniently build a RepOptimizer and a RepOpt-VGG model and use them just like you use the common optimizers and models.
+
+Please see ```build_RepOptVGG_and_SGD_optimizer_from_pth``` [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptvgg_impl.py).
 
 
 
