@@ -21,7 +21,7 @@ RepOptimizer and RepOpt-VGG have been used in **YOLOv6** ([paper](https://arxiv.
 ## Catalog
 - [x] Code
 - [x] PyTorch pretrained models
-- [ ] PyTorch training code
+- [x] PyTorch training code
 
 <!-- ✅ ⬜️  -->
 
@@ -69,6 +69,10 @@ We have released the models pre-trained with this codebase.
 
 ## Evaluation
 
+For example, you may test our released RepOpt-VGG-B1 by
+```
+python -m torch.distributed.launch --nproc_per_node {your_num_gpus} --master_port 12349 main_repopt.py --arch RepOpt-VGG-B1-target --tag test --eval --resume RepOpt-VGG-B1-acc78.62.pth --data-path /path/to/imagenet --batch-size 32 --opts DATA.DATASET imagenet
+```
 
 ## Training
 
@@ -77,9 +81,6 @@ To reproduce RepOpt-VGG-B1, you may build a RepOptimizer with our released const
 python3 -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_repopt.py --data-path /path/to/imagenet --arch RepOpt-VGG-B1-target --batch-size 32 --tag experiment --scales-path RepOpt-VGG-B1-scales.pth --opts TRAIN.EPOCHS 120 TRAIN.BASE_LR 0.1 TRAIN.WEIGHT_DECAY 4e-5 TRAIN.WARMUP_EPOCHS 5 MODEL.LABEL_SMOOTHING 0.1 AUG.PRESET raug15 DATA.DATASET imagenet
 ```
 The log and weights will be saved to ```output/RepOpt-VGG-B1-target/experiment/```
-
-Will update with more use cases in several days.
-
 
 
 ## License
