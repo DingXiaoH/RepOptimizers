@@ -14,18 +14,18 @@ If you find the paper or this repository helpful, please consider citing
         }
 
 
-## Highlights
+# Highlights
 
 RepOptimizer and RepOpt-VGG have been used in **YOLOv6** ([paper](https://arxiv.org/abs/2209.02976), [code](https://github.com/meituan/YOLOv6)) and **deployed in business**. The methodology of Structural Re-parameterization also plays a critical role in **YOLOv7** ([paper](https://arxiv.org/abs/2207.02696), [code](https://github.com/WongKinYiu/yolov7)).
 
-## Catalog
+# Catalog
 - [x] Code
 - [x] PyTorch pretrained models
 - [x] PyTorch training code
 
 <!-- ✅ ⬜️  -->
 
-## Verify the equivalency GR = CSLA
+# Verify the equivalency GR = CSLA
 
 Tired of reading proof? We provide a script demonstrating the equivalency of GR = CSLA in **both SGD and AdamW** cases.
 
@@ -36,7 +36,7 @@ python check_equivalency.py
 ```
 
 
-## Design
+# Design
 
 RepOptimizers currently support two update rules (SGD with momentum and AdamW) and two models (RepOpt-VGG and [RepOpt-MLPNet](https://github.com/DingXiaoH/RepMLP)). While re-designing the code of RepOptimizer, I decided to separate the update-rule-related behaviors and model-specific behaviors.
 
@@ -55,7 +55,7 @@ For example, ```RepOptVGGHandler``` (see ```repoptvgg_impl.py```) implements the
 2. In the ```step``` function, RepOptimizers will use the Grad Mults properly. For SGD, please see [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptimizer_sgd.py#L38). For AdamW, please see [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptimizer_adamw.py#L145) and [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptimizer_adamw.py#L274).
 
 
-## Pre-trained Models
+# Pre-trained Models
 
 We have released the models pre-trained with this codebase.
 
@@ -67,9 +67,13 @@ We have released the models pre-trained with this codebase.
 |RepOpt-VGG-L2|  80.47  |  118.1  | [Google Drive](https://drive.google.com/file/d/1PG0sSqOTRdnVoBS_ZBKPShcOIyHNLze6/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1D5KuqjcXGW-CsdNm9UZzvQ?pwd=rvgg) |
 
 
+# Use cases
+
+The following cases use RepOpt-VGG-B1 as an example. You may replace ```RepOpt-VGG-B1``` by ```RepOpt-VGG-B2```, ```RepOpt-VGG-L1```, or ```RepOpt-VGG-L2``` as you wish.
+
 ## Evaluation
 
-For example, you may test our released RepOpt-VGG-B1 by
+You may test our released models by
 ```
 python -m torch.distributed.launch --nproc_per_node {your_num_gpus} --master_port 12349 main_repopt.py --arch RepOpt-VGG-B1-target --tag test --eval --resume RepOpt-VGG-B1-acc78.62.pth --data-path /path/to/imagenet --batch-size 32 --opts DATA.DATASET imagenet
 ```
@@ -81,6 +85,29 @@ To reproduce RepOpt-VGG-B1, you may build a RepOptimizer with our released const
 python3 -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_repopt.py --data-path /path/to/imagenet --arch RepOpt-VGG-B1-target --batch-size 32 --tag experiment --scales-path RepOpt-VGG-B1-scales.pth --opts TRAIN.EPOCHS 120 TRAIN.BASE_LR 0.1 TRAIN.WEIGHT_DECAY 4e-5 TRAIN.WARMUP_EPOCHS 5 MODEL.LABEL_SMOOTHING 0.1 AUG.PRESET raug15 DATA.DATASET imagenet
 ```
 The log and weights will be saved to ```output/RepOpt-VGG-B1-target/experiment/```
+
+## Hyper-Search
+
+Besides using our released scales, you may Hyper-Search by
+```
+python3 -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_repopt.py --data-path /path/to/search/dataset --arch RepOpt-VGG-B1-hs --batch-size 32 --tag search --opts TRAIN.EPOCHS 240 TRAIN.BASE_LR 0.1 TRAIN.WEIGHT_DECAY 4e-5 TRAIN.WARMUP_EPOCHS 10 MODEL.LABEL_SMOOTHING 0.1 DATA.DATASET cf100 TRAIN.CLIP_GRAD 5.0
+```
+
+(Note that since the model seems too big for such a small dataset, we use grad clipping to stablize the training. But do not use grad clipping while training with RepOptimizer! That would break the equivalency.)
+
+The weights of the search model will be saved to ```output/RepOpt-VGG-B1-hs/search/latest.pth```
+
+Then you may train with it by
+```
+python3 -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_repopt.py --data-path /path/to/imagenet --arch RepOpt-VGG-B1-target --batch-size 32 --tag experiment --scales-path output/RepOpt-VGG-B1-hs/search/latest.pth --opts TRAIN.EPOCHS 120 TRAIN.BASE_LR 0.1 TRAIN.WEIGHT_DECAY 4e-5 TRAIN.WARMUP_EPOCHS 5 MODEL.LABEL_SMOOTHING 0.1 AUG.PRESET raug15 DATA.DATASET imagenet
+```
+
+## Use RepOptimizer and RepOpt-VGG in your code
+
+Given the searched scales (saved in a ```.pth``` file), you may conveniently build a RepOptimizer and a RepOpt-VGG model and use them just like you use the common optimizers and models.
+
+Please see ```build_RepOptVGG_and_SGD_optimizer_from_pth``` [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptvgg_impl.py).
+
 
 
 ## License
