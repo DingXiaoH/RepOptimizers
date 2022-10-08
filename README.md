@@ -20,7 +20,7 @@ RepOptimizer and RepOpt-VGG have been used in **YOLOv6** ([paper](https://arxiv.
 
 ## Catalog
 - [x] Code
-- [ ] PyTorch pretrained models
+- [x] PyTorch pretrained models
 - [ ] PyTorch training code
 
 <!-- ✅ ⬜️  -->
@@ -57,7 +57,14 @@ For example, ```RepOptVGGHandler``` (see ```repoptvgg_impl.py```) implements the
 
 ## Pre-trained Models
 
-Uploading.
+We have released the models pre-trained with this codebase.
+
+| name | ImageNet-1K acc | #params | download |
+|:---:|:---:|:---:|:---:| :---:|:---:|:---:|
+|RepOpt-VGG-B1|  78.62  |  51.8M  | [Google Drive](https://drive.google.com/file/d/1kBDue-19AG0Rm2NaS5h6aTl-ZHvdPe5K/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1Zs-eStqDEQIfymGFnIwR-A?pwd=rvgg) |
+|RepOpt-VGG-B2|         |    |    |  |
+|RepOpt-VGG-L1|  79.82  |  76.0   | [Google Drive](https://drive.google.com/file/d/19wd13WgBK6LtyLVA_N9ZjFYaLwduywnm/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1CsbNRqGZIPuejavxaeClGQ?pwd=rvgg) |
+|RepOpt-VGG-L2|  80.47  |  118.1  | [Google Drive](https://drive.google.com/file/d/1PG0sSqOTRdnVoBS_ZBKPShcOIyHNLze6/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1D5KuqjcXGW-CsdNm9UZzvQ?pwd=rvgg) |
 
 
 ## Evaluation
