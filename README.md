@@ -60,7 +60,7 @@ For example, ```RepOptVGGHandler``` (see ```repoptvgg_impl.py```) implements the
 We have released the models pre-trained with this codebase.
 
 | name | ImageNet-1K acc | #params | download |
-|:---:|:---:|:---:|:---:| :---:|:---:|:---:|
+|:---:|:---:|:---:|:---:|
 |RepOpt-VGG-B1|  78.62  |  51.8M  | [Google Drive](https://drive.google.com/file/d/1kBDue-19AG0Rm2NaS5h6aTl-ZHvdPe5K/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1Zs-eStqDEQIfymGFnIwR-A?pwd=rvgg) |
 |RepOpt-VGG-B2|         |    |    |  |
 |RepOpt-VGG-L1|  79.82  |  76.0   | [Google Drive](https://drive.google.com/file/d/19wd13WgBK6LtyLVA_N9ZjFYaLwduywnm/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1CsbNRqGZIPuejavxaeClGQ?pwd=rvgg) |
