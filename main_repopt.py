@@ -17,7 +17,7 @@ from config import get_config
 from data import build_loader
 from lr_scheduler import build_scheduler
 from logger import create_logger
-from utils import load_checkpoint, save_checkpoint, get_grad_norm, auto_resume_helper, reduce_tensor, save_latest, update_model_ema, unwrap_model
+from utils import load_checkpoint, save_checkpoint, get_grad_norm, auto_resume_helper, reduce_tensor, save_latest, update_model_ema, unwrap_model, load_weights
 import copy
 from optimizer import build_optimizer, set_weight_decay
 
@@ -80,8 +80,6 @@ def main(config):
     if 'vgg' in config.MODEL.ARCH.lower() or 'B1' in config.MODEL.ARCH or 'B2' in config.MODEL.ARCH or 'L1' in config.MODEL.ARCH or 'L2' in config.MODEL.ARCH:
 
         from repoptimizer.repoptvgg_model import RepOptVGG
-        from repoptimizer.repoptvgg_impl import RepOptVGGHandler, extract_scales
-        from repoptimizer.repoptimizer_sgd import RepOptimizerSGD
 
         if 'B1' in config.MODEL.ARCH:
             num_blocks = [4, 6, 16, 1]
@@ -110,16 +108,14 @@ def main(config):
         elif '-target' in config.MODEL.ARCH:
             assert config.DATA.DATASET == 'imagenet'
             #   build target model
-            model = RepOptVGG(num_blocks=num_blocks, width_multiplier=width_multiplier, mode='target', num_classes=1000)
             if config.EVAL_MODE or '-norepopt' in config.MODEL.ARCH:
+                model = RepOptVGG(num_blocks=num_blocks, width_multiplier=width_multiplier, mode='target', num_classes=1000)
                 optimizer = build_optimizer(config, model)  # just a placeholder for testing or the ablation study with regular optimizer for training
             else:
-                from repoptimizer.repoptvgg_impl import extract_RepOptVGG_scales_from_pth, build_RepOptVGG_SGD_optimizer
-                scales = extract_RepOptVGG_scales_from_pth(num_blocks=num_blocks, width_multiplier=width_multiplier,
-                                                           scales_path=config.TRAIN.SCALES_PATH, search_num_classes=100)
-                optimizer = build_RepOptVGG_SGD_optimizer(model, scales, lr=config.TRAIN.BASE_LR,
-                                            momentum=config.TRAIN.OPTIMIZER.MOMENTUM,
-                                            weight_decay=config.TRAIN.WEIGHT_DECAY)
+                from repoptimizer.repoptvgg_impl import build_RepOptVGG_and_SGD_optimizer_from_pth
+                model, optimizer = build_RepOptVGG_and_SGD_optimizer_from_pth(num_blocks, width_multiplier, config.TRAIN.SCALES_PATH,
+                                            lr=config.TRAIN.BASE_LR, momentum=config.TRAIN.OPTIMIZER.MOMENTUM, weight_decay=config.TRAIN.WEIGHT_DECAY,
+                                            num_classes=1000)
         else:
             raise ValueError('not supported')
 

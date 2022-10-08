@@ -122,11 +122,16 @@ def build_RepOptVGG_SGD_optimizer(model, scales, lr, momentum=0.9, weight_decay=
     return optimizer
 
 
-def extract_RepOptVGG_scales_from_pth(num_blocks, width_multiplier, scales_path, search_num_classes=100):
-    trained_hs_model = RepOptVGG(num_blocks=num_blocks, num_classes=search_num_classes, width_multiplier=width_multiplier, mode='hs')
+def extract_RepOptVGG_scales_from_pth(num_blocks, width_multiplier, scales_path):
+    trained_hs_model = RepOptVGG(num_blocks=num_blocks, num_classes=100, width_multiplier=width_multiplier, mode='hs')
     weights = torch.load(scales_path, map_location='cpu')
     if 'model' in weights:
         weights = weights['model']
+    if 'state_dict' in weights:
+        weights = weights['state_dict']
+    for ignore_key in ['linear.weight', 'linear.bias']:
+        if ignore_key in weights:
+            weights.pop(ignore_key)
     scales = extract_scales(trained_hs_model)
     print('check: before loading scales ', scales[-2][-1].mean(), scales[-2][-2].mean())
     trained_hs_model.load_state_dict(weights, strict=False)
@@ -134,3 +139,11 @@ def extract_RepOptVGG_scales_from_pth(num_blocks, width_multiplier, scales_path,
     print('========================================== loading scales from', scales_path)
     print('check: after loading scales ', scales[-2][-1].mean(), scales[-2][-2].mean())
     return scales
+
+def build_RepOptVGG_and_SGD_optimizer_from_pth(num_blocks, width_multiplier, scales_path, lr, momentum=0.9, weight_decay=4e-5, num_classes=1000):
+    model = RepOptVGG(num_blocks=num_blocks, width_multiplier=width_multiplier, mode='target', num_classes=num_classes)
+    scales = extract_RepOptVGG_scales_from_pth(num_blocks=num_blocks, width_multiplier=width_multiplier, scales_path=scales_path)
+    optimizer = build_RepOptVGG_SGD_optimizer(model, scales, lr=lr, momentum=momentum, weight_decay=weight_decay)
+    return model, optimizer
+
+
