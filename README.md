@@ -110,11 +110,11 @@ Please see ```build_RepOptVGG_and_SGD_optimizer_from_pth``` [here](https://githu
 
 ## Another example: RepOpt-GhostNet
 
-RepGhostNet is a recently proposed lightweight model built with Structural Re-parameterization. The training-time forward function of a block can be formulated as output=batch_norm(depthwise_convolution(x)) + batch_norm(x). With RepOptimizer, the parallel batch norm (referred to as "fusion layer" in the RepGhostNet paper) can be removed even during training. Similar to RepVGG and RepOpt-VGG, we design the CSLA model by replacing the batch norm layers with constant or trainable scaling layers and the Grad Mults of RepOptimizer accordingly. 
+RepGhostNet is a recently proposed lightweight model built with Structural Re-parameterization. The training-time forward function of a block can be formulated as ```output=batch_norm(depthwise_convolution(x)) + batch_norm(x)```. With RepOptimizer, the parallel batch norm (referred to as "fusion layer" in the RepGhostNet paper) can be removed even during training. Similar to RepVGG and RepOpt-VGG, we design the CSLA model by replacing the batch norm layers with constant or trainable scaling layers and the Grad Mults of RepOptimizer accordingly. 
 
 
 | name | ImageNet-1K acc | download |
-|:---:|:---:|:---:|:---:|
+|:---:|:---:|:---:|
 |RepGhostNet-0.5x (our implementation)|  66.51  | [Google Drive](https://drive.google.com/file/d/1Ok5Wy1rGtg6havxtVDMlLVorabq1Q58r/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1iDjmaXudw7fSXalwetOLSg?pwd=rvgg) |
 |RepOpt-GhostNet-0.5x |  66.50  | [Google Drive](https://drive.google.com/file/d/1lwzG1zHXqNS5qA-35N0M-8sAE4teTKdr/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1rU6tJyuMpPY8v2iZz3gSrw?pwd=rvgg) |
 
