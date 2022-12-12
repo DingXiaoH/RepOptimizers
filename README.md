@@ -35,10 +35,15 @@ You may run the following script to verify the equivalency (GR = CSLA) on an exp
 python check_equivalency.py
 ```
 
+We provide a more complicated example ([RepGhostNet](https://https://arxiv.org/abs/2211.06088)) to verify the equivalency. Just run
+```
+python check_equivalency_repghost.py
+```
+
 
 # Design
 
-RepOptimizers currently support two update rules (SGD with momentum and AdamW) and two models (RepOpt-VGG and [RepOpt-GhostNet](https://https://arxiv.org/abs/2211.06088)). While re-designing the code of RepOptimizer, I decided to separate the update-rule-related behaviors and model-specific behaviors.
+RepOptimizers currently support two update rules (SGD with momentum and AdamW) and two models (RepOpt-VGG and RepOpt-GhostNet). While re-designing the code of RepOptimizer, I decided to separate the update-rule-related behaviors and model-specific behaviors.
 
 The key components of the new implementation (please see ```repoptimizer/```) include
 
