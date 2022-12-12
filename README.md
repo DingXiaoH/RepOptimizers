@@ -132,7 +132,7 @@ python -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_r
 
 Or first Hyper-Search and then use the searched scales
 ```
-python -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_repopt.py --data-path /path/to/cifar100 --arch ghost-hs --batch-size 128 --tag reproduce --opts TRAIN.EPOCHS 600 TRAIN.BASE_LR 0.6 TRAIN.WEIGHT_DECAY 1e-5 TRAIN.WARMUP_EPOCHS 10 MODEL.LABEL_SMOOTHING 0.1 DATA.DATASET cf100 TRAIN.CLIP_GRAD 5.0'
+python -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_repopt.py --data-path /path/to/cifar100 --arch ghost-hs --batch-size 128 --tag reproduce --opts TRAIN.EPOCHS 600 TRAIN.BASE_LR 0.6 TRAIN.WEIGHT_DECAY 1e-5 TRAIN.WARMUP_EPOCHS 10 MODEL.LABEL_SMOOTHING 0.1 DATA.DATASET cf100 TRAIN.CLIP_GRAD 5.0
 
 python -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_repopt.py --data-path /path/to/imagenet --arch ghost-target --batch-size 128 --tag reproduce --scales-path output/ghost-hs/reproduce/latest.pth --opts TRAIN.EPOCHS 300 TRAIN.BASE_LR 0.6 TRAIN.WEIGHT_DECAY 1e-5 TRAIN.WARMUP_EPOCHS 5 MODEL.LABEL_SMOOTHING 0.1 DATA.DATASET imagenet TRAIN.OPTIMIZER.NAME sgd TRAIN.WARMUP_LR 1e-4
 ```
