@@ -1,6 +1,6 @@
 # RepOptimizers
 
-(Dec 23rd: code for reproducing RepOpt-GhostNet)
+(Dec 23rd: released RepOpt-GhostNet model and reproducible code)
 
 This is the official repository of [Re-parameterizing Your Optimizers rather than Architectures](https://arxiv.org/abs/2205.15242).
 
