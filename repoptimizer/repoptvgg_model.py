@@ -38,20 +38,17 @@ class RealVGGBlock(nn.Module):
 class RepVGGBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels,
-                 stride=1, use_post_se=False, deploy=False):
+                 stride=1, use_post_se=False):
         super(RepVGGBlock, self).__init__()
-        self.deploy = deploy
         self.relu = nn.ReLU()
-        if deploy:
-            self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=stride, padding=1, bias=True)
-            self.bn = nn.Identity()
-        else:
-            self.conv_3x3 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
-            self.bn_3x3 = nn.BatchNorm2d(out_channels)
-            self.conv_1x1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=stride, padding=0, bias=False)
-            self.bn_1x1 = nn.BatchNorm2d(out_channels)
-            if in_channels == out_channels and stride == 1:
-                self.bn_identity = nn.BatchNorm2d(out_channels)
+        self.conv_3x3 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=stride,
+                                  padding=1, bias=False)
+        self.bn_3x3 = nn.BatchNorm2d(out_channels)
+        self.conv_1x1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=stride,
+                                  padding=0, bias=False)
+        self.bn_1x1 = nn.BatchNorm2d(out_channels)
+        if in_channels == out_channels and stride == 1:
+            self.bn_identity = nn.BatchNorm2d(out_channels)
         if use_post_se:
             self.post_se = SEBlock(out_channels, internal_neurons=out_channels // 4)
         else:

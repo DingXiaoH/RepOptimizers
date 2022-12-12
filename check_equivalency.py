@@ -7,7 +7,7 @@ from repoptimizer.repoptimizer_sgd import RepOptimizerSGD
 from repoptimizer.repoptimizer_adamw import RepOptimizerAdamW
 
 num_train_iters = 50
-lr = 0.01
+lr = 0.1
 momentum = 0.9
 weight_decay = 0.1
 nest = True
@@ -114,4 +114,3 @@ def check_equivalency(update_rule):
 
 check_equivalency('sgd')
 check_equivalency('adamw')
-exit()

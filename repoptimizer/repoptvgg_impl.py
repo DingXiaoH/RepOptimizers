@@ -66,26 +66,28 @@ class RepOptVGGHandler(RepOptimizerHandler):
                     else:
                         raise Warning('========================== Warning! Is this really training from scratch? =================')
             print('##################### Re-initialize #############')
+            for scale, conv3x3 in zip(self.scales, self.convs):
+                in_channels = conv3x3.in_channels
+                out_channels = conv3x3.out_channels
+                kernel_1x1 = nn.Conv2d(in_channels, out_channels, 1)
+                if len(scale) == 2:
+                    conv3x3.weight.data = conv3x3.weight * scale[1].view(-1, 1, 1, 1) \
+                                          + F.pad(kernel_1x1.weight, [1, 1, 1, 1]) * scale[0].view(-1, 1, 1, 1)
+                else:
+                    assert len(scale) == 3
+                    assert in_channels == out_channels
+                    identity = torch.eye(out_channels).reshape(out_channels, out_channels, 1, 1)
+                    conv3x3.weight.data = conv3x3.weight * scale[2].view(-1, 1, 1, 1) + F.pad(kernel_1x1.weight,
+                                                                                              [1, 1, 1, 1]) * scale[1].view(-1, 1, 1, 1)
+                    if self.use_identity_scales_for_reinit:  # You may initialize the imaginary CSLA block with the trained identity_scale values. Makes almost no difference.
+                        identity_scale_weight = scale[0]
+                        conv3x3.weight.data += F.pad(identity * identity_scale_weight.view(-1, 1, 1, 1), [1, 1, 1, 1])
+                    else:
+                        conv3x3.weight.data += F.pad(identity, [1, 1, 1, 1])
         else:
             raise Warning('========================== Warning! Re-init disabled. Guess you are doing an ablation study? =================')
 
-        for scale, conv3x3 in zip(self.scales, self.convs):
-            in_channels = conv3x3.in_channels
-            out_channels = conv3x3.out_channels
-            kernel_1x1 = nn.Conv2d(in_channels, out_channels, 1)
-            if len(scale) == 2:
-                conv3x3.weight.data = conv3x3.weight * scale[1].view(-1, 1, 1, 1) \
-                                      + F.pad(kernel_1x1.weight, [1, 1, 1, 1]) * scale[0].view(-1, 1, 1, 1)
-            else:
-                assert len(scale) == 3
-                assert in_channels == out_channels
-                identity = torch.eye(out_channels).reshape(out_channels, out_channels, 1, 1)
-                conv3x3.weight.data = conv3x3.weight * scale[2].view(-1, 1, 1, 1) + F.pad(kernel_1x1.weight, [1, 1, 1, 1]) * scale[1].view(-1, 1, 1, 1)
-                if self.use_identity_scales_for_reinit:     # You may initialize the imaginary CSLA block with the trained identity_scale values. Makes almost no difference.
-                    identity_scale_weight = scale[0]
-                    conv3x3.weight.data += F.pad(identity * identity_scale_weight.view(-1, 1, 1, 1), [1, 1, 1, 1])
-                else:
-                    conv3x3.weight.data += F.pad(identity, [1, 1, 1, 1])
+
 
 
     def generate_grad_mults(self):

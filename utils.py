@@ -152,14 +152,11 @@ def update_model_ema(cfg, num_gpus, model, model_ema, cur_epoch, cur_iter):
         param.copy_(param * (1.0 - alpha) + params[name] * alpha)
 
 
-def update_model_ema_v2(cfg, num_gpus, model, model_ema, cur_epoch, cur_iter):
-    decay = 0.9999
-    alpha = 1 - decay
-    if cur_iter % 200 == 0:
-        print('update ema at', cur_iter)
 
+
+def update_model_ema_v2(model, model_ema, ema_alpha):
     params = unwrap_model(model).state_dict()
     with torch.no_grad():
         for name, param in unwrap_model(model_ema).state_dict().items():
-            param.copy_(param * (1.0 - alpha) + params[name] * alpha)
+            param.copy_(param * (1.0 - ema_alpha) + params[name] * ema_alpha)
 

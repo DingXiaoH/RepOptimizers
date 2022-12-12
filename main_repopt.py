@@ -17,10 +17,10 @@ from config import get_config
 from data import build_loader
 from lr_scheduler import build_scheduler
 from logger import create_logger
-from utils import load_checkpoint, save_checkpoint, get_grad_norm, auto_resume_helper, reduce_tensor, save_latest, update_model_ema, unwrap_model, load_weights
+from utils import load_checkpoint, save_checkpoint, get_grad_norm, auto_resume_helper, reduce_tensor, save_latest, update_model_ema_v2, unwrap_model, load_weights
 import copy
 from optimizer import build_optimizer, set_weight_decay
-
+from timm.data import create_dataset, create_loader
 
 try:
     # noinspection PyUnresolvedReferences
@@ -119,11 +119,87 @@ def main(config):
         else:
             raise ValueError('not supported')
 
-    elif 'mlp' in config.MODEL.ARCH.lower():
-        raise ValueError('TODO')
+    elif 'ghost' in config.MODEL.ARCH.lower():
+        from repoptimizer.repoptghostnet_model import repoptghostnet_0_5x
+        from repoptimizer.repoptghostnet_impl import build_RepOptGhostNet_0_5x_and_SGD_optimizer_from_pth
+
+        if '-hs' in config.MODEL.ARCH:
+            assert config.DATA.DATASET == 'cf100'
+            model = repoptghostnet_0_5x(mode='hs', num_classes=100)
+            optimizer = build_optimizer(config, model)
+
+        elif '-rep' in config.MODEL.ARCH:
+            #   as baseline
+            assert config.DATA.DATASET == 'imagenet'
+            model = repoptghostnet_0_5x(mode='rep')
+            optimizer = build_optimizer(config, model)
+
+        elif '-target' in config.MODEL.ARCH:
+            assert config.DATA.DATASET == 'imagenet'
+            #   build target model
+            if config.EVAL_MODE or '-norepopt' in config.MODEL.ARCH:
+                model = repoptghostnet_0_5x(mode='target', num_classes=1000)
+                optimizer = build_optimizer(config, model)  # just a placeholder for testing or the ablation study with regular optimizer for training
+            else:
+                from repoptimizer.repoptghostnet_impl import build_RepOptGhostNet_0_5x_and_SGD_optimizer_from_pth
+                model, optimizer = build_RepOptGhostNet_0_5x_and_SGD_optimizer_from_pth(config.TRAIN.SCALES_PATH,
+                                            lr=config.TRAIN.BASE_LR, momentum=config.TRAIN.OPTIMIZER.MOMENTUM, weight_decay=config.TRAIN.WEIGHT_DECAY,
+                                            num_classes=1000)
+
+        else:
+            raise ValueError('not supported')
+
+        if config.DATA.DATASET == 'imagenet':
+            from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+            data_loader_train = create_loader(
+                dataset_train,
+                input_size=224,
+                batch_size=config.DATA.BATCH_SIZE,
+                is_training=True,
+                use_prefetcher=True,
+                no_aug=False,
+                re_prob=0.2,
+                re_mode='pixel',
+                re_count=1,
+                re_split=False,
+                scale=[0.08, 1.0],
+                ratio=[3. / 4., 4. / 3.],
+                hflip=0.5,
+                vflip=0.,
+                color_jitter=0.4,
+                auto_augment=None,
+                num_aug_splits=0,
+                interpolation='random',
+                mean=IMAGENET_DEFAULT_MEAN,
+                std=IMAGENET_DEFAULT_STD,
+                num_workers=7,
+                distributed=True,
+                collate_fn=None,
+                pin_memory=False,
+                use_multi_epochs_loader=False)
+
+            data_loader_val = create_loader(
+                dataset_val,
+                input_size=224,
+                batch_size=config.DATA.BATCH_SIZE,
+                is_training=False,
+                use_prefetcher=True,
+                interpolation='bicubic',
+                mean=IMAGENET_DEFAULT_MEAN,
+                std=IMAGENET_DEFAULT_STD,
+                num_workers=7,
+                distributed=True,
+                crop_pct=None,
+                pin_memory=False)
+
+            print(
+                '========================================== use default preprocessing of RepGhost ============================')
+
+
+
 
     else:
-        raise ValueError('TODO: support other models except for RepOpt-VGG and RepOpt-MLPNet.')
+        raise ValueError('TODO: support other models except for RepOpt-VGG and RepOpt-GhostNet.')
 
     logger.info(str(model))
     model.cuda()
@@ -194,7 +270,7 @@ def main(config):
     for epoch in range(config.TRAIN.START_EPOCH, config.TRAIN.EPOCHS):
         data_loader_train.sampler.set_epoch(epoch)
 
-        train_one_epoch(config, model, criterion, data_loader_train, optimizer, epoch, mixup_fn, lr_scheduler, model_ema=model_ema)
+        train_one_epoch(config, model, criterion, data_loader_train, optimizer, epoch, mixup_fn, lr_scheduler, model_ema=model_ema, ema_alpha=config.TRAIN.EMA_ALPHA)
         if dist.get_rank() == 0:
             save_latest(config, epoch, model_without_ddp, max_accuracy, optimizer, lr_scheduler, logger, model_ema=model_ema)
             if epoch % config.SAVE_FREQ == 0:
@@ -231,7 +307,7 @@ def main(config):
     logger.info('Training time {}'.format(total_time_str))
 
 
-def train_one_epoch(config, model, criterion, data_loader, optimizer, epoch, mixup_fn, lr_scheduler, model_ema=None):
+def train_one_epoch(config, model, criterion, data_loader, optimizer, epoch, mixup_fn, lr_scheduler, model_ema=None, ema_alpha=0.0):
     model.train()
     optimizer.zero_grad()
 
@@ -308,7 +384,7 @@ def train_one_epoch(config, model, criterion, data_loader, optimizer, epoch, mix
         batch_time.update(time.time() - end)
 
         if model_ema is not None:
-            update_model_ema(config, dist.get_world_size(), model=model, model_ema=model_ema, cur_epoch=epoch, cur_iter=idx)
+            update_model_ema_v2(model=model, model_ema=model_ema, ema_alpha=ema_alpha)
 
         end = time.time()
 
