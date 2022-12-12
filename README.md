@@ -1,6 +1,6 @@
 # RepOptimizers
 
-(Sep 23rd: Refactoring. Will finish in two days. Will release models in one weak.)
+(Sep 23rd: Refactored. Models released.)
 
 This is the official repository of [Re-parameterizing Your Optimizers rather than Architectures](https://arxiv.org/abs/2205.15242).
 
@@ -62,7 +62,7 @@ We have released the models pre-trained with this codebase.
 | name | ImageNet-1K acc | #params | download |
 |:---:|:---:|:---:|:---:|
 |RepOpt-VGG-B1|  78.62  |  51.8M  | [Google Drive](https://drive.google.com/file/d/1kBDue-19AG0Rm2NaS5h6aTl-ZHvdPe5K/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1Zs-eStqDEQIfymGFnIwR-A?pwd=rvgg) |
-|RepOpt-VGG-B2|         |    |    |  |
+|RepOpt-VGG-B2|  79.68  |  80.3M  | [Google Drive](https://drive.google.com/file/d/1o4enC7tFr0nORJHEE9vaHh8mHpusFvRE/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1kPKFvi-BNL_GOdbnYlCBzg?pwd=rvgg)   |
 |RepOpt-VGG-L1|  79.82  |  76.0M   | [Google Drive](https://drive.google.com/file/d/19wd13WgBK6LtyLVA_N9ZjFYaLwduywnm/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1CsbNRqGZIPuejavxaeClGQ?pwd=rvgg) |
 |RepOpt-VGG-L2|  80.47  |  118.1M  | [Google Drive](https://drive.google.com/file/d/1PG0sSqOTRdnVoBS_ZBKPShcOIyHNLze6/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1D5KuqjcXGW-CsdNm9UZzvQ?pwd=rvgg) |
 
