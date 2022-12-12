@@ -1,6 +1,6 @@
 # RepOptimizers
 
-(Sep 23rd: Refactored. Models released.)
+(Dec 23rd: released RepOpt-GhostNet model and reproducible code)
 
 This is the official repository of [Re-parameterizing Your Optimizers rather than Architectures](https://arxiv.org/abs/2205.15242).
 
@@ -29,20 +29,25 @@ RepOptimizer and RepOpt-VGG have been used in **YOLOv6** ([paper](https://arxiv.
 
 Tired of reading proof? We provide a script demonstrating the equivalency of GR = CSLA in **both SGD and AdamW** cases.
 
-You may run the following script to verify the equivalency (GR = CSLA) on an experimental model. You can even run without a GPU.
+You may run the following script to verify the equivalency (GR = CSLA) on an experimental model. You can run without a GPU.
 
 ```
 python check_equivalency.py
 ```
 
+We provide a more complicated example ([RepGhostNet](https://https://arxiv.org/abs/2211.06088)) to verify the equivalency. Just run
+```
+python check_equivalency_repghost.py
+```
+
 
 # Design
 
-RepOptimizers currently support two update rules (SGD with momentum and AdamW) and two models (RepOpt-VGG and [RepOpt-MLPNet](https://github.com/DingXiaoH/RepMLP)). While re-designing the code of RepOptimizer, I decided to separate the update-rule-related behaviors and model-specific behaviors.
+RepOptimizers currently support two update rules (SGD with momentum and AdamW) and two models (RepOpt-VGG and RepOpt-GhostNet). While re-designing the code of RepOptimizer, I decided to separate the update-rule-related behaviors and model-specific behaviors.
 
 The key components of the new implementation (please see ```repoptimizer/```) include
 
-**Model**: ```repoptvgg_model.py``` and ```repoptmlp_model.py``` define the model architecutres, including the target and search structures.
+**Model**: ```repoptvgg_model.py``` and ```repoptghostnet_model.py``` define the model architecutres, including the target and search structures.
 
 **Model-specific Handler**: a ```RepOptimizerHandler``` defines the model-specific behavior of RepOptimizer given the searched scales, which include 1) re-initializing the model (i.e., Rule of Initialization) and 2) generating the Grad Mults (i.e., Rule of Iteration).
 
@@ -55,7 +60,7 @@ For example, ```RepOptVGGHandler``` (see ```repoptvgg_impl.py```) implements the
 2. In the ```step``` function, RepOptimizers will use the Grad Mults properly. For SGD, please see [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptimizer_sgd.py#L38). For AdamW, please see [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptimizer_adamw.py#L145) and [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptimizer_adamw.py#L274).
 
 
-# Pre-trained Models
+# Pre-trained RepOpt-VGG Models
 
 We have released the models pre-trained with this codebase.
 
@@ -107,6 +112,35 @@ python -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_r
 Given the searched scales (saved in a ```.pth``` file), you may conveniently build a RepOptimizer and a RepOpt-VGG model and use them just like you use the common optimizers and models.
 
 Please see ```build_RepOptVGG_and_SGD_optimizer_from_pth``` [here](https://github.com/DingXiaoH/RepOptimizers/blob/main/repoptimizer/repoptvgg_impl.py).
+
+## Another example: RepOpt-GhostNet
+
+RepGhostNet is a recently proposed lightweight model built with Structural Re-parameterization. The training-time forward function of a block can be formulated as ```output=batch_norm(depthwise_convolution(x)) + batch_norm(x)```. With RepOptimizer, the parallel batch norm (referred to as "fusion layer" in the RepGhostNet paper) can be removed even during training. Similar to RepVGG and RepOpt-VGG, we design the CSLA model by replacing the batch norm layers with constant or trainable scaling layers and the Grad Mults of RepOptimizer accordingly. 
+
+
+| name | ImageNet-1K acc | download |
+|:---:|:---:|:---:|
+|RepGhostNet-0.5x (our implementation)|  66.51  | [Google Drive](https://drive.google.com/file/d/1Ok5Wy1rGtg6havxtVDMlLVorabq1Q58r/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1iDjmaXudw7fSXalwetOLSg?pwd=rvgg) |
+|RepOpt-GhostNet-0.5x |  66.50  | [Google Drive](https://drive.google.com/file/d/1lwzG1zHXqNS5qA-35N0M-8sAE4teTKdr/view?usp=sharing), [Baidu Cloud](https://pan.baidu.com/s/1rU6tJyuMpPY8v2iZz3gSrw?pwd=rvgg) |
+
+
+We trained the original RepGhostNet-0.5x with this codebase and got a top-1 accuracy of 66.51%.
+```
+python -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_repopt.py --data-path /path/to/imagenet --arch ghost-rep --batch-size 128 --tag reproduce --opts TRAIN.EPOCHS 300 TRAIN.BASE_LR 0.6 TRAIN.WEIGHT_DECAY 1e-5 TRAIN.WARMUP_EPOCHS 5 MODEL.LABEL_SMOOTHING 0.1 DATA.DATASET imagenet TRAIN.OPTIMIZER.NAME sgd TRAIN.WARMUP_LR 1e-4
+```
+The log and weights will be saved to ```output/ghost-rep/reproduce/```
+
+You may reproduce RepOpt-GhostNet with our released scales
+```
+python -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_repopt.py --data-path /path/to/imagenet --arch ghost-target --batch-size 128 --tag reproduce --scales-path RepOptGhostNet_0_5x_scales.pth --opts TRAIN.EPOCHS 300 TRAIN.BASE_LR 0.6 TRAIN.WEIGHT_DECAY 1e-5 TRAIN.WARMUP_EPOCHS 5 MODEL.LABEL_SMOOTHING 0.1 DATA.DATASET imagenet TRAIN.OPTIMIZER.NAME sgd TRAIN.WARMUP_LR 1e-4
+```
+
+Or first Hyper-Search and then use the searched scales
+```
+python -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_repopt.py --data-path /path/to/cifar100 --arch ghost-hs --batch-size 128 --tag reproduce --opts TRAIN.EPOCHS 600 TRAIN.BASE_LR 0.6 TRAIN.WEIGHT_DECAY 1e-5 TRAIN.WARMUP_EPOCHS 10 MODEL.LABEL_SMOOTHING 0.1 DATA.DATASET cf100 TRAIN.CLIP_GRAD 5.0
+
+python -m torch.distributed.launch --nproc_per_node 8 --master_port 12349 main_repopt.py --data-path /path/to/imagenet --arch ghost-target --batch-size 128 --tag reproduce --scales-path output/ghost-hs/reproduce/latest.pth --opts TRAIN.EPOCHS 300 TRAIN.BASE_LR 0.6 TRAIN.WEIGHT_DECAY 1e-5 TRAIN.WARMUP_EPOCHS 5 MODEL.LABEL_SMOOTHING 0.1 DATA.DATASET imagenet TRAIN.OPTIMIZER.NAME sgd TRAIN.WARMUP_LR 1e-4
+```
 
 
 
